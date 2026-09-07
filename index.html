@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مینی‌ماینکرفت تحت وب</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #87CEEB;
+            font-family: Tahoma, sans-serif;
+            text-align: center;
+            user-select: none;
+        }
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">مینی‌ماینکرفت | روی صفحه لمس کنید یا کلیک کنید تا بلوک چمنی ساخته شود</div>
+    
+    <!-- بارگذاری موتور سه‌بعدی Three.js از طریق اینترنت (CDN) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script>
+        // تنظیمات صحنه سه‌بعدی
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x87CEEB);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+
+        // نورپردازی محیط
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(10, 20, 10);
+        scene.add(dirLight);
+
+        // ساخت متریال بلوک چمن (سبز و قهوه‌ای)
+        const geometry = new THREE.BoxGeometry(1, 1, 1);
+        const material = new THREE.MeshLambertMaterial({ color: 0x4CAF50 });
+
+        // ساخت زمین اولیه (چند بلوک کنار هم)
+        const blocks = [];
+        for (let x = -3; x <= 3; x++) {
+            for (let z = -3; z <= 3; z++) {
+                createBlock(x, 0, z);
+            }
+        }
+
+        function createBlock(x, y, z) {
+            const cube = new THREE.Mesh(geometry, material);
+            cube.position.set(x, y, z);
+            scene.add(cube);
+            blocks.push(cube);
+        }
+
+        // تنظیم موقعیت دوربین
+        camera.position.set(0, 5, 8);
+        camera.lookAt(0, 0, 0);
+
+        // چرخش ساده صحنه با حرکت موس یا لمس صفحه
+        let isDragging = false;
+        let previousMousePosition = { x: 0, y: 0 };
+
+        window.addEventListener('mousedown', (e) => { isDragging = true; });
+        window.addEventListener('mouseup', (e) => { isDragging = false; });
+        
+        window.addEventListener('mousemove', (e) => {
+            if (isDragging) {
+                const deltaX = e.clientX - previousMousePosition.x;
+                scene.rotation.y += deltaX * 0.005;
+            }
+            previousMousePosition = { x: e.clientX, y: e.clientY };
+        });
+
+        // برای لمس گوشی
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) {
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - previousMousePosition.x;
+                scene.rotation.y += deltaX * 0.005;
+                previousMousePosition = { x: touch.clientX, y: touch.clientY };
+            }
+        }, { passive: true });
+
+        // رندر و انیمیشن بازی
+        function animate() {
+            requestAnimationFrame(animate);
+            renderer.render(scene, camera);
+        }
+        animate();
+
+        // تغییر اندازه صفحه در صورت چرخش گوشی
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+    </script>
+</body>
+</html>
