@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>مینی ماینکرفت وب - با زامبی و کنترل لمسی</title>
+    <title>ماینکرفت پیشرفته تحت وب</title>
     <style>
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #87CEEB;
-            font-family: Tahoma, sans-serif;
+            background-color: #1a1a1a;
+            font-family: 'Segoe UI', Tahoma, sans-serif;
             user-select: none;
             -webkit-user-select: none;
         }
@@ -18,199 +18,316 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            color: white;
-            font-size: 24px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 28px;
             pointer-events: none;
-            z-index: 5;
-        }
-        #ui {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: rgba(0, 0, 0, 0.6);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 8px;
-            font-size: 12px;
-            z-index: 10;
-            text-align: right;
-        }
-        /* دکمه‌های کنترل لمسی روی صفحه */
-        .controls {
-            position: absolute;
-            bottom: 20px;
-            left: 20px;
-            display: grid;
-            grid-template-columns: repeat(3, 60px);
-            grid-template-rows: repeat(2, 60px);
-            gap: 5px;
             z-index: 10;
         }
-        .btn {
-            background: rgba(255, 255, 255, 0.3);
-            border: 2px solid white;
-            color: white;
-            font-size: 20px;
+        #hud {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #00ffcc;
+            padding: 10px 15px;
             border-radius: 10px;
+            font-size: 13px;
+            z-index: 10;
+            border: 1px solid #00ffcc55;
+            backdrop-filter: blur(5px);
+        }
+        /* کنترل‌های لمسی مدرن شفاف */
+        .joystick-container {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            width: 130px;
+            height: 130px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            z-index: 10;
             display: flex;
             align-items: center;
             justify-content: center;
-            cursor: pointer;
+            backdrop-filter: blur(3px);
         }
-        .btn:active { background: rgba(255, 255, 255, 0.6); }
-        
-        .actions {
+        .joystick-handle {
+            width: 50px;
+            height: 50px;
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 50%;
             position: absolute;
-            bottom: 20px;
-            right: 20px;
+            transition: transform 0.05s ease;
+        }
+        .action-panel {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
             display: flex;
-            flex-direction: column;
-            gap: 10px;
+            gap: 15px;
             z-index: 10;
         }
-        .action-btn {
-            width: 70px;
-            height: 70px;
-            background: rgba(255, 100, 100, 0.5);
-            border: 2px solid white;
+        .modern-btn {
+            width: 65px;
+            height: 65px;
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid rgba(255, 255, 255, 0.4);
             color: white;
             font-size: 14px;
-            border-radius: 50%;
+            font-weight: bold;
+            border-radius: 18px;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-weight: bold;
+            backdrop-filter: blur(5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+        }
+        .modern-btn:active {
+            background: rgba(255, 255, 255, 0.3);
+            transform: scale(0.95);
         }
     </style>
 </head>
 <body>
 
     <div id="crosshair">+</div>
-    <div id="ui">
-        حرکت: دکمه‌های پایین چپ<br>
-        پرش، کندن و ساختن: دکمه‌های راست
+    <div id="hud">
+        وضعیت: آنلاین | دنیای سه‌بعدی واکسل<br>
+        حرکت: جوی‌استیک چپ | پرش و اکشن: راست
     </div>
 
-    <!-- کنترل‌های لمسی -->
-    <div class="controls">
-        <div></div>
-        <div class="btn" onclick="movePlayer(0, 1)">⬆️</div>
-        <div></div>
-        <div class="btn" onclick="movePlayer(-1, 0)">⬅️</div>
-        <div class="btn" onclick="movePlayer(0, -1)">⬇️</div>
-        <div class="btn" onclick="movePlayer(1, 0)">➡️</div>
+    <div class="joystick-container" id="joystickZone">
+        <div class="joystick-handle" id="joystickHandle"></div>
     </div>
 
-    <div class="actions">
-        <div class="action-btn" onclick="jumpPlayer()">پرش</div>
-        <div class="action-btn" style="background: rgba(100, 200, 100, 0.5);" onclick="actionBlock()">کندن/ساز</div>
+    <div class="action-panel">
+        <div class="modern-btn" id="jumpBtn">پرش</div>
+        <div class="modern-btn" id="actionBtn" style="border-color: #ff4444;">کندن/ساخت</div>
     </div>
 
-    <!-- کتابخانه سه‌بعدی Three.js -->
+    <!-- کتابخانه‌های پیشرفته Three.js و ابزارهای کمکی -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <script>
-        const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x87CEEB);
+        let scene, camera, renderer;
+        let blocks = [];
+        let zombies = [];
+        let player = {
+            x: 0, y: 2, z: 5,
+            vx: 0, vz: 0,
+            speed: 0.1,
+            isJumping: false,
+            jumpVel: 0
+        };
 
-        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-        const renderer = new THREE.WebGLRenderer({ antialias: true });
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        document.body.appendChild(renderer.domElement);
+        let rotX = 0, rotY = 0;
+        let raycaster = new THREE.Raycaster();
+        let mouse = new THREE.Vector2();
 
-        // نورپردازی
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
-        scene.add(ambientLight);
-        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
-        dirLight.position.set(10, 20, 10);
-        scene.add(dirLight);
+        init();
+        animate();
 
-        // ساخت زمین (بلوک‌های چمن)
-        const blockSize = 1;
-        const geometry = new THREE.BoxGeometry(blockSize, blockSize, blockSize);
-        const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x4CAF50 });
-        const dirtMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
-        
-        const blocks = [];
-        for (let x = -5; x <= 5; x++) {
-            for (let z = -5; z <= 5; z++) {
-                createBlock(x, 0, z, grassMaterial);
+        function init() {
+            // صحنه و دوربین
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x7ec0ee);
+            scene.fog = new THREE.FogExp2(0x7ec0ee, 0.03);
+
+            camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            document.body.appendChild(renderer.domElement);
+
+            // نورپردازی پیشرفته
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfff5e6, 0.8);
+            sunLight.position.set(20, 40, 20);
+            scene.add(sunLight);
+
+            // متریال‌های تکسچر رنگی ماینکرفتی
+            const boxGeo = new THREE.BoxGeometry(1, 1, 1);
+            const grassMat = new THREE.MeshLambertMaterial({ color: 0x559933 });
+            const dirtMat = new THREE.MeshLambertMaterial({ color: 0x8b5a2b });
+
+            // ساخت نقشه زمین (دنیا)
+            for (let x = -8; x <= 8; x++) {
+                for (let z = -8; z <= 8; z++) {
+                    createBlock(x, 0, z, grassMat);
+                    if(Math.random() > 0.7) {
+                        createBlock(x, -1, z, dirtMat);
+                    }
+                }
+            }
+
+            // اسپاون چند زامبی هوشمند پیشرفته
+            for(let i=0; i<3; i++) {
+                spawnZombie((Math.random() - 0.5) * 10, 1, (Math.random() - 0.5) * 10);
+            }
+
+            // کنترل چرخش دوربین با لمس و کشیدن صفحه
+            let isDragging = false;
+            let lastMousePos = { x: 0, y: 0 };
+
+            window.addEventListener('touchstart', (e) => {
+                if(e.touches.length === 1 && e.clientX > window.innerWidth / 3) {
+                    isDragging = true;
+                    lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            window.addEventListener('touchmove', (e) => {
+                if(isDragging && e.touches.length === 1) {
+                    let dx = e.touches[0].clientX - lastMousePos.x;
+                    let dy = e.touches[0].clientY - lastMousePos.y;
+                    
+                    rotY -= dx * 0.005;
+                    rotX -= dy * 0.005;
+                    rotX = Math.max(-Math.PI/2.2, Math.min(Math.PI/2.2, rotX));
+
+                    lastMousePos = { x: e.touches[0].clientX, y: e.touches[0].clientY };
+                }
+            });
+
+            window.addEventListener('touchend', () => { isDragging = false; });
+
+            // جوی‌استیک حرکتی
+            setupJoystick();
+
+            // دکمه‌های پرش و اکشن
+            document.getElementById('jumpBtn').addEventListener('click', () => {
+                if(!player.isJumping) {
+                    player.isJumping = true;
+                    player.jumpVel = 0.15;
+                }
+            });
+
+            document.getElementById('actionBtn').addEventListener('click', performAction);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function createBlock(x, y, z, material) {
+            const mesh = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), material);
+            mesh.position.set(x, y, z);
+            scene.add(mesh);
+            blocks.push(mesh);
+            return mesh;
+        }
+
+        function spawnZombie(x, y, z) {
+            const zombieGroup = new THREE.Group();
+            
+            // بدنه زامبی
+            const bodyMat = new THREE.MeshLambertMaterial({ color: 0x336633 });
+            const headMat = new THREE.MeshLambertMaterial({ color: 0x448844 });
+            
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.9, 0.3), bodyMat);
+            body.position.y = 0.45;
+            zombieGroup.add(body);
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), headMat);
+            head.position.y = 1.15;
+            zombieGroup.add(head);
+
+            zombieGroup.position.set(x, y, z);
+            scene.add(zombieGroup);
+            zombies.push({ mesh: zombieGroup, speed: 0.03 });
+        }
+
+        function setupJoystick() {
+            const zone = document.getElementById('joystickZone');
+            const handle = document.getElementById('joystickHandle');
+            let rect = zone.getBoundingClientRect();
+            let center = { x: rect.width / 2, y: rect.height / 2 };
+
+            zone.addEventListener('touchmove', (e) => {
+                let touch = e.touches[0];
+                let x = touch.clientX - rect.left - center.x;
+                let y = touch.clientY - rect.top - center.y;
+                let distance = Math.hypot(x, y);
+                let maxDist = 40;
+
+                if (distance > maxDist) {
+                    x = (x / distance) * maxDist;
+                    y = (y / distance) * maxDist;
+                }
+
+                handle.style.transform = `translate(${x}px, ${y}px)`;
+
+                // محاسبه بردار حرکت بر اساس زاویه دوربین
+                let angle = rotY;
+                player.vx = -(x / maxDist) * Math.cos(angle) - (y / maxDist) * Math.sin(angle);
+                player.vz = -(x / maxDist) * Math.sin(angle) + (y / maxDist) * Math.cos(angle);
+            });
+
+            zone.addEventListener('touchend', () => {
+                handle.style.transform = `translate(0px, 0px)`;
+                player.vx = 0;
+                player.vz = 0;
+            });
+        }
+
+        function performAction() {
+            // ری‌کست برای پیدا کردن بلوک روبه‌رو جهت کندن یا ساختن
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(blocks);
+
+            if (intersects.length > 0) {
+                const hit = intersects[0];
+                if (hit.distance < 4) {
+                    // اگر نزدیک بود، بلوک را بکن (حذف کن)
+                    scene.remove(hit.object);
+                    blocks = blocks.filter(b => b !== hit.object);
+                }
             }
         }
 
-        function createBlock(x, y, z, mat) {
-            const cube = new THREE.Mesh(geometry, mat);
-            cube.position.set(x, y, z);
-            scene.add(cube);
-            blocks.push(cube);
-            return cube;
-        }
-
-        // موقعیت بازیکن
-        let playerPos = { x: 0, y: 1.5, z: 5 };
-        camera.position.set(playerPos.x, playerPos.y, playerPos.z);
-
-        // افزودن زامبی
-        const zombieGeo = new THREE.BoxGeometry(0.8, 1.8, 0.8);
-        const zombieMat = new THREE.MeshLambertMaterial({ color: 0x2E8B57 });
-        const zombie = new THREE.Mesh(zombieGeo, zombieMat);
-        zombie.position.set(3, 1, -3);
-        scene.add(zombie);
-
-        let zombiePos = { x: 3, z: -3 };
-
-        // کنترل‌های حرکت با دکمه‌ها
-        function movePlayer(dx, dz) {
-            playerPos.x += dx * 0.5;
-            playerPos.z += dz * 0.5;
-            camera.position.x = playerPos.x;
-            camera.position.z = playerPos.z;
-        }
-
-        function jumpPlayer() {
-            playerPos.y += 1;
-            camera.position.y = playerPos.y;
-            setTimeout(() => {
-                playerPos.y -= 1;
-                camera.position.y = playerPos.y;
-            }, 300);
-        }
-
-        // کندن یا ساختن بلوک روبرو
-        function actionBlock() {
-            let targetX = Math.round(playerPos.x);
-            let targetZ = Math.round(playerPos.z - 1);
-            
-            // پیدا کردن بلوک جلو و حذف آن (کندن)
-            let existingIndex = blocks.findIndex(b => Math.round(b.position.x) === targetX && Math.round(b.position.z) === targetZ && Math.round(b.position.y) === 0);
-            
-            if (existingIndex !== -1) {
-                scene.remove(blocks[existingIndex]);
-                blocks.splice(existingIndex, 1);
-            } else {
-                // اگر بلوکی نبود، یکی بساز
-                createBlock(targetX, 0, targetZ, dirtMaterial);
-            }
-        }
-
-        // حلقه اصلی بازی و حرکت زامبی به سمت بازیکن
         function animate() {
             requestAnimationFrame(animate);
 
-            // تعقیب بازیکن توسط زامبی
-            if (zombie.position.x < playerPos.x) zombie.position.x += 0.01;
-            if (zombie.position.x > playerPos.x) zombie.position.x -= 0.01;
-            if (zombie.position.z < playerPos.z) zombie.position.z += 0.01;
-            if (zombie.position.z > playerPos.z) zombie.position.z -= 0.01;
+            // حرکت بازیکن
+            player.x += player.vx * player.speed * 5;
+            player.z += player.vz * player.speed * 5;
+
+            if (player.isJumping) {
+                player.y += player.jumpVel;
+                player.jumpVel -= 0.01;
+                if (player.y <= 2) {
+                    player.y = 2;
+                    player.isJumping = false;
+                }
+            }
+
+            // به‌روزرسانی دوربین
+            camera.position.set(player.x, player.y, player.z);
+            let dir = new THREE.Vector3(
+                Math.sin(rotY) * Math.cos(rotX),
+                Math.sin(rotX),
+                Math.cos(rotY) * Math.cos(rotX)
+            );
+            camera.lookAt(camera.position.clone().add(dir));
+
+            // حرکت هوشمند زامبی‌ها به سمت بازیکن
+            zombies.forEach(z => {
+                let zPos = z.mesh.position;
+                if (zPos.distanceTo(camera.position) < 12) {
+                    z.mesh.lookAt(player.x, zPos.y, player.z);
+                    z.mesh.translateZ(z.speed);
+                }
+            });
 
             renderer.render(scene, camera);
         }
-        animate();
 
-        window.addEventListener('resize', () => {
+        function onWindowResize() {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
             renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        }
     </script>
 </body>
 </html>
